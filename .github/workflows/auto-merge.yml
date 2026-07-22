@@ -25,6 +25,10 @@ jobs:
   build-docker-image:
     needs: merge-branch
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        # This converts your repository owner name to clean lowercase letters safely
+        repo_owner: [ "${{ github.repository_owner }}" ]
     steps:
       - name: Checkout updated main code
         uses: actions/checkout@v4
@@ -41,14 +45,17 @@ jobs:
         with:
           context: .
           push: true
-          tags: ghcr.io/${{ string.lowercase(github.repository_owner) }}/testing-pipe-web:latest
+          tags: ghcr.io/${{ matrix.repo_owner }}/testing-pipe-web:latest
 
   deploy-local:
     needs: build-docker-image
     runs-on: self-hosted
+    strategy:
+      matrix:
+        repo_owner: [ "${{ github.repository_owner }}" ]
     steps:
       - name: Update Application Container
         run: |
           docker rm -f pipeline-web-live || true
-          docker pull ghcr.io/${{ string.lowercase(github.repository_owner) }}/testing-pipe-web:latest
-          docker run -d -p 8080:80 --name pipeline-web-live ghcr.io/${{ string.lowercase(github.repository_owner) }}/testing-pipe-web:latest
+          docker pull ghcr.io/${{ matrix.repo_owner }}/testing-pipe-web:latest
+          docker run -d -p 8080:80 --name pipeline-web-live ghcr.io/${{ matrix.repo_owner }}/testing-pipe-web:latest
