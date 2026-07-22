@@ -58,4 +58,10 @@ jobs:
         run: |
           docker rm -f pipeline-web-live || true
           docker pull ghcr.io/${{ matrix.repo_owner }}/testing-pipe-web:latest
-          docker run -d -p 8080:80 --name pipeline-web-live ghcr.io/${{ matrix.repo_owner }}/testing-pipe-web:latest
+          docker run -d -p 8080:80 \
+            --name pipeline-web-live \
+            --log-driver=loki \
+            --log-opt loki-url="http://localhost:3100/loki/api/v1/push" \
+            ghcr.io/decoymaster/testing-pipe-web:latest
+            
+          docker image prune -f
