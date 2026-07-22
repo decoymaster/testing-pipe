@@ -1,0 +1,34 @@
+name: Auto Merge to Main
+
+# Trigger this pipeline whenever code is pushed to any branch EXCEPT main
+on:
+  push:
+    branches-ignore:
+      - main
+
+jobs:
+  merge-branch:
+    runs-on: ubuntu-latest
+    steps:
+      # 1. Download the repository code
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Fetches full history so git can merge properly
+          token: ${{ secrets.GITHUB_TOKEN }} # Uses GitHub's built-in security token
+
+      # 2. Run the merge script
+      - name: Merge branch into main
+        run: |
+          # Set up a temporary git user identity for the runner
+          git config --global user.name "GitHub Action Bot"
+          git config --global user.email "actions@github.com"
+          
+          # Switch to the main branch
+          git checkout main
+          
+          # Merge the development branch into main
+          git merge origin/${{ github.ref_name }} --no-ff -m "Automated CI merge from branch: ${{ github.ref_name }}"
+          
+          # Push the changes back to GitHub
+          git push origin main
