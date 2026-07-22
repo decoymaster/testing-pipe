@@ -1,6 +1,6 @@
 name: Auto Merge to Main
 
-# Trigger this pipeline whenever code is pushed to any branch EXCEPT mainnn
+# Trigger this pipeline whenever code is pushed to any branch EXCEPT mainn
 on:
   push:
     branches-ignore:
