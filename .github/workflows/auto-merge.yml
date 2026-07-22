@@ -1,6 +1,5 @@
-name: Auto Merge to Main
+name: Auto Merge and Docker Build
 
-# Trigger this pipeline whenever code is pushed to any branch EXCEPT mainn
 on:
   push:
     branches-ignore:
@@ -10,25 +9,31 @@ jobs:
   merge-branch:
     runs-on: ubuntu-latest
     steps:
-      # 1. Download the repository code
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # Fetches full history so git can merge properly
-          token: ${{ secrets.GITHUB_TOKEN }} # Uses GitHub's built-in security token
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
 
-      # 2. Run the merge script
       - name: Merge branch into main
         run: |
-          # Set up a temporary git user identity for the runner
           git config --global user.name "GitHub Action Bot"
           git config --global user.email "actions@github.com"
-          
-          # Switch to the main branch
           git checkout main
-          
-          # Merge the development branch into main
           git merge origin/${{ github.ref_name }} --no-ff -m "Automated CI merge from branch: ${{ github.ref_name }}"
-          
-          # Push the changes back to GitHub
           git push origin main
+
+  # NEW JOB: Build the Docker Image
+  build-docker-image:
+    needs: merge-branch # Only run this AFTER the merge job passes successfully
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout updated main code
+        uses: actions/checkout@v4
+        with:
+          ref: main # Build the image from the newly updated main branch
+
+      # This runs standard docker commands inside the GitHub cloud server to verify your Dockerfile works
+      - name: Build Docker Image
+        run: |
+          docker build -t testing-pipe-web:latest .
