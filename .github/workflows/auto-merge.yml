@@ -60,8 +60,7 @@ jobs:
           docker pull ghcr.io/${{ matrix.repo_owner }}/testing-pipe-web:latest
           docker run -d -p 8080:80 \
             --name pipeline-web-live \
-            --log-driver=syslog \
-            --log-opt syslog-address="tcp://localhost:514" \
+            --log-driver=fluentd \
+            --log-opt fluentd-address="localhost:24224" \
+            --log-opt fluentd-async-connect="true" \
             ghcr.io/decoymaster/testing-pipe-web:latest
-            
-          docker image prune -f
