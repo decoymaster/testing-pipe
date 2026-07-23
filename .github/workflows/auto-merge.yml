@@ -25,7 +25,6 @@ jobs:
           git checkout main
           git merge origin/${{ github.ref_name }} --no-ff -m "Automated CI merge from branch: ${{ github.ref_name }}"
           git push origin main
-          git push origin --delete ${{ github.ref_name }}
 
   build-docker-image:
     needs: merge-branch
