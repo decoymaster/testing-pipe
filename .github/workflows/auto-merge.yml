@@ -1,78 +1,11 @@
-name: Auto Merge, Build, and Deploy with Approval
+name: Run Central Pipeline
 
 on:
   push:
     branches-ignore:
       - main
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
-
 jobs:
-  merge-branch:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
-      - name: Merge branch into main
-        run: |
-          git config --global user.name "GitHub Action Bot"
-          git config --global user.email "actions@github.com"
-          git checkout main
-          git merge origin/${{ github.ref_name }} --no-ff -m "Automated CI merge from branch: ${{ github.ref_name }}"
-          git push origin main
-
-  build-docker-image:
-    needs: merge-branch
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        repo_owner: [ "${{ github.repository_owner }}" ]
-    steps:
-      - name: Checkout updated main code
-        uses: actions/checkout@v4
-        with:
-          ref: main
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Build and Push Docker Image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          push: true
-          tags: ghcr.io/${{ matrix.repo_owner }}/testing-pipe-web:latest
-
-  human-verification:
-    needs: build-docker-image
-    runs-on: ubuntu-latest
-    steps:
-      - name: Wait for manual intervention comment
-        uses: trstringer/manual-approval@v1
-        with:
-          secret: ${{ secrets.GITHUB_TOKEN }}
-          approvers: decoymaster
-          minimum-approvals: 1
-          issue-title: "Deploy Approval for Commit: ${{ github.sha }}"
-          issue-body: "Code successfully merged to main and Docker image compiled. Type 'approve' in this issue to authorize localhost deployment."
-
-  deploy-local:
-    needs: human-verification
-    runs-on: self-hosted
-    strategy:
-      matrix:
-        repo_owner: [ "${{ github.repository_owner }}" ]
-    steps:
-      - name: Update Application Container
-        run: |
-          docker rm -f pipeline-web-live || true
-          docker pull ghcr.io/${{ matrix.repo_owner }}/testing-pipe-web:latest
-          docker run -d -p 8080:80 --name pipeline-web-live ghcr.io/${{ matrix.repo_owner }}/testing-pipe-web:latest
-          docker image prune -f
+  call-pipeline:
+    uses: decoymaster/main-pipeline/.github/workflows/deploy.yml@main
+    secrets: inherit
